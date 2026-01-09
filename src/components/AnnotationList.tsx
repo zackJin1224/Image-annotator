@@ -1,12 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { Box } from "../types";
 
 interface AnnotationListProps {
   annotations: Box[];
-  onDelete: (index: number) => void;
+  onDelete: ( index: number ) => void;
+  onUpdateLabel: ( index: number, newLabel: string ) => void;
 }
 
-function AnnotationList({ annotations, onDelete }: AnnotationListProps) {
+function AnnotationList ( { annotations, onDelete,onUpdateLabel }: AnnotationListProps )
+{
+  const [ editingIndex, setEditingIndex ] = useState<number>( -1 );
+  const [ editValue, setEditValue ] = useState<string>( "" );
+
+
   return (
     <div className="w-64 bg-gray-50 p-4 overflow-y-auto border-l border-gray-300">
       <h2 className="text-lg font-semibold mb-4 text-gray-800 text-center">
@@ -34,15 +40,47 @@ function AnnotationList({ annotations, onDelete }: AnnotationListProps) {
                 </div>
                 {/*Show cooradinates info*/}
                 <div className="text-xs text-gray-600 space-y-1">
+                  {editingIndex === index ? (
+                    <input
+                      type="text"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (!editValue) return;
+                          onUpdateLabel(editingIndex, editValue);
+                          setEditingIndex(-1);
+                          setEditValue("");
+                        }
+                        if (e.key === "Escape") {
+                          setEditingIndex(-1);
+                          setEditValue("");
+                        }
+                      }}
+                      autoFocus
+                      className="border border-blue-500 rounded px-1 py-0.5 text-xs w-full"
+                    />
+                  ) : (
+                    <p
+                      onClick={() => {
+                        setEditingIndex(index);
+                        setEditValue(box.label);
+                      }}
+                      className="cursor-pointer hover:text-blue-600"
+                    >
+                      Label: {box.label}
+                    </p>
+                  )}
+
                   <p>
-                    Start : ({box.startX},{box.startY})
+                    Start: ({box.startX},{box.startY})
                   </p>
                   <p>
-                    End : ({box.endX},{box.endY})
+                    End: ({box.endX},{box.endY})
                   </p>
 
                   <p>
-                    Size : {Math.abs(box.endX - box.startX)} *{" "}
+                    Size: {Math.abs(box.endX - box.startX)} *{" "}
                     {Math.abs(box.endY - box.startY)}{" "}
                   </p>
                 </div>

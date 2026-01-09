@@ -7,14 +7,15 @@
  */
 import React, { useState, useRef, useEffect } from "react";
 import { Box } from "../types";
+import { generateRandomColor } from "../types";
 
 interface CanvasProps {
   imageUrl: string | null;
   annotations: Box[];
-  setAnnotations: ( boxes: Box[] ) => void;
+  setAnnotations: (boxes: Box[]) => void;
 }
 
-function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
+function Canvas({ imageUrl, annotations, setAnnotations }: CanvasProps) {
   //Get the canvas element
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Variables
@@ -24,7 +25,13 @@ function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
     startY: 0,
     endX: 0,
     endY: 0,
+    label: "",
+    color: "",
   });
+  const [showLabelInput, setShowLabelInput] = useState(false);
+  const [labelInputPosition, setLabelInputPosition] = useState({ x: 0, y: 0 });
+  const [tempBox, setTempBox] = useState<Box | null>(null);
+  const [labelInput, setLabelInput] = useState<string>("");
 
   //Mouse event functions
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -33,15 +40,17 @@ function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
     //Get the position of mouse
     //Boundary check
     const canvas = canvasRef.current;
-    if ( !canvas ) return;
-    const x = Math.max(0,Math.min(e.nativeEvent.offsetX,canvas.width));
-    const y = Math.max(0,Math.min(e.nativeEvent.offsetY,canvas.height));
+    if (!canvas) return;
+    const x = Math.max(0, Math.min(e.nativeEvent.offsetX, canvas.width));
+    const y = Math.max(0, Math.min(e.nativeEvent.offsetY, canvas.height));
     //Record the position
     setCurrentBox({
       startX: x,
       startY: y,
       endX: x,
       endY: y,
+      label: "unlabeled",
+      color: generateRandomColor(),
     });
   };
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -60,16 +69,28 @@ function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
       ...currentBox,
       endX: x,
       endY: y,
-    } );
-    
+    });
   };
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
 
     //Check if if eligible
     const { startX, startY, endX, endY } = currentBox;
     if (startX !== endX && startY !== endY) {
-      setAnnotations([...annotations, currentBox]);
+      //Save temporary box
+      const newBox = {
+        ...currentBox,
+        label: "",
+        color: generateRandomColor(),
+      };
+      setTempBox(newBox);
+      //Record the mouse positions
+      setLabelInputPosition({
+        x: e.nativeEvent.offsetX,
+        y: e.nativeEvent.offsetY,
+      });
+      //Show the input box
+      setShowLabelInput(true);
     }
     // Stop drawing
     setIsDrawing(false);
@@ -101,7 +122,7 @@ function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
         const height = box.endY - box.startY;
 
         //Set the style
-        ctx.strokeStyle = "green";
+        ctx.strokeStyle = box.color;
         ctx.lineWidth = 2;
         ctx.setLineDash([]);
 
@@ -129,15 +150,53 @@ function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
   return (
     <div className="flex-1 bg-white p-6 flex items-center justify-center overflow-auto">
       {imageUrl ? (
-        <canvas
-          ref={canvasRef}
-          height={600}
-          width={800}
-          className="max-w-full max-h-full object-contain border-2 border-gray-300"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        />
+        <>
+          <canvas
+            ref={canvasRef}
+            height={600}
+            width={800}
+            className="max-w-full max-h-full object-contain border-2 border-gray-300"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          />
+          {/* Label input box */}
+          {showLabelInput && (
+            <input
+              type="text"
+              placeholder="Enter label..."
+              value={labelInput}
+              onChange={(e) => setLabelInput(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (!tempBox) return;
+                  const finalBox = {
+                    ...tempBox,
+                    label: labelInput,
+                  };
+                  setAnnotations([...annotations, finalBox]);
+
+                  setShowLabelInput(false);
+                  setLabelInput("");
+                  setTempBox(null);
+                }
+
+                if (e.key === "Escape") {
+                  
+                  setShowLabelInput(false);
+                  setLabelInput("");
+                  setTempBox(null);
+                }
+              }}
+              className="absolute border-2 border-blue-500 rounded px-2 py-1 shadow-lg"
+              style={{
+                left: `${labelInputPosition.x}px`,
+                top: `${labelInputPosition.y}px`,
+              }}
+            />
+          )}
+        </>
       ) : (
         <p className="text-gray-400 text-lg">
           Canvas area - Upload an image to start

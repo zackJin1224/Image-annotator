@@ -18,6 +18,16 @@ function App() {
     setAnnotations( annotations.filter( ( box, i ) => i !== index ) );
   };
 
+  const handleUpdateLabel = (index: number, newLabel: string) => {
+    const updateAnnotations = [...annotations];
+    updateAnnotations[index] = {
+      ...updateAnnotations[index],
+      label: newLabel,
+    };
+    setAnnotations(updateAnnotations);
+  };
+
+
   return (
     <div className="h-screen flex flex-col">
       <Header onImageUpload={setImageUrl} />
@@ -29,8 +39,9 @@ function App() {
           setAnnotations={setAnnotations}
         />
         <AnnotationList
-          annotations={ annotations }
-          onDelete={handleDelete}
+          annotations = { annotations }
+          onDelete = { handleDelete }
+          onUpdateLabel = {handleUpdateLabel}
         />
       </div>
     </div>
