@@ -36,7 +36,8 @@ function App() {
         <Canvas
           imageUrl={ imageUrl }
           annotations={ annotations }
-          setAnnotations={setAnnotations}
+          setAnnotations={ setAnnotations }
+          onDelete={handleDelete}
         />
         <AnnotationList
           annotations = { annotations }

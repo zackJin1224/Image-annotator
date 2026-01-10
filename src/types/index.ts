@@ -9,5 +9,18 @@ export type Box = {
 
 export function generateRandomColor (): string
 {
-  return "#" + Math.floor(Math.random() * 16777215).toString(16);
+  const colors = [
+    '#22c55e', 
+    '#f59e0b', 
+    '#a855f7', 
+    '#ef4444', 
+    '#ec4899', 
+    '#14b8a6', 
+    '#f97316', 
+    '#8b5cf6', 
+    
+  ];
+  
+  const randomIndex = Math.floor(Math.random() * colors.length); 
+  return colors[randomIndex];
 }

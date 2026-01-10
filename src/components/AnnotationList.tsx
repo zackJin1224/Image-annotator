@@ -3,15 +3,17 @@ import { Box } from "../types";
 
 interface AnnotationListProps {
   annotations: Box[];
-  onDelete: ( index: number ) => void;
-  onUpdateLabel: ( index: number, newLabel: string ) => void;
+  onDelete: (index: number) => void;
+  onUpdateLabel: (index: number, newLabel: string) => void;
 }
 
-function AnnotationList ( { annotations, onDelete,onUpdateLabel }: AnnotationListProps )
-{
-  const [ editingIndex, setEditingIndex ] = useState<number>( -1 );
-  const [ editValue, setEditValue ] = useState<string>( "" );
-
+function AnnotationList({
+  annotations,
+  onDelete,
+  onUpdateLabel,
+}: AnnotationListProps) {
+  const [editingIndex, setEditingIndex] = useState<number>(-1);
+  const [editValue, setEditValue] = useState<string>("");
 
   return (
     <div className="w-64 bg-gray-50 p-4 overflow-y-auto border-l border-gray-300">

@@ -12,10 +12,11 @@ import { generateRandomColor } from "../types";
 interface CanvasProps {
   imageUrl: string | null;
   annotations: Box[];
-  setAnnotations: (boxes: Box[]) => void;
+  setAnnotations: ( boxes: Box[] ) => void;
+  onDelete: ( index: number ) => void;
 }
 
-function Canvas({ imageUrl, annotations, setAnnotations }: CanvasProps) {
+function Canvas({ imageUrl, annotations, setAnnotations,onDelete }: CanvasProps) {
   //Get the canvas element
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Variables
@@ -26,23 +27,45 @@ function Canvas({ imageUrl, annotations, setAnnotations }: CanvasProps) {
     endX: 0,
     endY: 0,
     label: "",
-    color: "",
+    color: ""
   });
   const [showLabelInput, setShowLabelInput] = useState(false);
   const [labelInputPosition, setLabelInputPosition] = useState({ x: 0, y: 0 });
   const [tempBox, setTempBox] = useState<Box | null>(null);
   const [labelInput, setLabelInput] = useState<string>("");
 
+  const [selectedBoxIndex, setSelectedBoxIndex] = useState<number>(-1);
+
+  const isPointInBox = (x: number, y: number, box: Box): boolean => {
+    const minX = Math.min(box.startX, box.endX);
+    const maxX = Math.max(box.startX, box.endX);
+    const minY = Math.min(box.startY, box.endY);
+    const maxY = Math.max(box.startY, box.endY);
+
+    return x >= minX && x <= maxX && y >= minY && y <= maxY;
+  };
+
   //Mouse event functions
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    //Set drawing state
-    setIsDrawing(true);
     //Get the position of mouse
     //Boundary check
     const canvas = canvasRef.current;
     if (!canvas) return;
     const x = Math.max(0, Math.min(e.nativeEvent.offsetX, canvas.width));
     const y = Math.max(0, Math.min(e.nativeEvent.offsetY, canvas.height));
+
+    for (let i = annotations.length - 1; i >= 0; i--) {
+      if (isPointInBox(x, y, annotations[i])) {
+        setSelectedBoxIndex(i);
+        return;
+      }
+    }
+
+    setSelectedBoxIndex(-1);
+
+    //Set drawing state
+    setIsDrawing(true);
+
     //Record the position
     setCurrentBox({
       startX: x,
@@ -116,14 +139,20 @@ function Canvas({ imageUrl, annotations, setAnnotations }: CanvasProps) {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       //Draw all finished annotation boxes
-      annotations.forEach((box) => {
+      annotations.forEach((box,index) => {
         //Calculate width and height
         const width = box.endX - box.startX;
         const height = box.endY - box.startY;
 
         //Set the style
-        ctx.strokeStyle = box.color;
-        ctx.lineWidth = 2;
+        if (index === selectedBoxIndex) {
+          ctx.strokeStyle = "blue";
+          ctx.lineWidth = 2;
+        } else {
+          ctx.strokeStyle = box.color;
+          ctx.lineWidth = 2;
+        }
+
         ctx.setLineDash([]);
 
         //Draw the box
@@ -144,7 +173,40 @@ function Canvas({ imageUrl, annotations, setAnnotations }: CanvasProps) {
 
     //Load image
     img.src = imageUrl;
-  }, [imageUrl, annotations, currentBox, isDrawing]);
+  }, [ imageUrl, annotations, currentBox, isDrawing,selectedBoxIndex ] );
+  
+
+  useEffect( () =>
+  {
+    const handleKeyDown = ( e: KeyboardEvent ) =>
+    {
+      //Delete
+      if ( (e.key === "Delete" || e.key === "Backspace") && selectedBoxIndex !== -1 )
+      {
+        onDelete( selectedBoxIndex );
+        setSelectedBoxIndex( -1 );
+        
+      }
+      //Esc
+      if ( e.key === "Escape" && isDrawing )
+      {
+        setIsDrawing( false );
+        setCurrentBox({
+          startX: 0,
+          startY: 0,
+          endX: 0,
+          endY: 0,
+          label: "",
+          color: "",
+        });
+      }
+    };
+    window.addEventListener( "keydown", handleKeyDown );
+    return () => window.removeEventListener( "keydown", handleKeyDown );
+
+
+  }, [ selectedBoxIndex, isDrawing, onDelete ] );
+
 
   //Return content
   return (
@@ -183,7 +245,6 @@ function Canvas({ imageUrl, annotations, setAnnotations }: CanvasProps) {
                 }
 
                 if (e.key === "Escape") {
-                  
                   setShowLabelInput(false);
                   setLabelInput("");
                   setTempBox(null);
