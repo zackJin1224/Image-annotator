@@ -8,9 +8,13 @@ import React from "react";
 interface HeaderProps
 {
   onImageUpload: ( url: string ) => void;
+  onExport: () => void;
+  hasImage: boolean;
+  hasAnnotations: boolean;
+  onFileNameChange: ( name: string ) => void;
 }
 
-function Header ( { onImageUpload }: HeaderProps )
+function Header ( { onFileNameChange,onImageUpload,onExport,hasImage,hasAnnotations }: HeaderProps )
 {
   const handleFileChange = ( event: React.ChangeEvent<HTMLInputElement> ) =>
   {
@@ -22,6 +26,7 @@ function Header ( { onImageUpload }: HeaderProps )
       {
         const url = e.target?.result as string;
         onImageUpload( url );
+        onFileNameChange( file.name );
       };
       reader.readAsDataURL( file );
     }
@@ -29,24 +34,35 @@ function Header ( { onImageUpload }: HeaderProps )
 
   
   return (
-    <div className="bg-gray-800 text-white p-4 relative">
-      <h1 className="text-2xl font-bold text-center">Image Annotator</h1>
-      <div className="absolute right-4 top-1/2 -translate-y-1/2">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          id="file-upload"
-          className="hidden"
-        />
-        <label
-          htmlFor="file-upload"
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded cursor-pointer"
-        >
-          Upload Image
-        </label>
+    <header className="bg-gray-800 text-white p-4">
+      <div className="relative flex items-center justify-center">
+        <h1 className="text-2xl font-bold">Image Annotation Tool</h1>
+
+        <div className="absolute right-0 flex gap-4">
+          <button
+            onClick={onExport}
+            disabled={!hasImage || !hasAnnotations}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            Export JSON
+          </button>
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            id="file-upload"
+            className="hidden"
+          />
+          <label
+            htmlFor="file-upload"
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded cursor-pointer inline-block"
+          >
+            Upload Image
+          </label>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }
 
