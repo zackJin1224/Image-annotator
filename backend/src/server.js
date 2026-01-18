@@ -18,13 +18,22 @@ const PORT = process.env.PORT || 5001;
 
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? [
-            "https://image-annotator.vercel.app",
-            "https://image-annotator-*.vercel.app",
-          ]
-        : "http://localhost:3000",
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://image-annotator-theta.vercel.app",
+      ];
+
+      if (
+        !origin ||
+        allowedOrigins.indexOf(origin) !== -1 ||
+        /\.vercel\.app$/.test(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
