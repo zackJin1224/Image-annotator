@@ -4,6 +4,8 @@ import Sidebar from "../components/Sidebar";
 import Canvas from "../components/Canvas";
 import AnnotationList from "../components/AnnotationList";
 import { Box } from "../types";
+import { aiService } from "../services/aiService";
+import toast from "react-hot-toast";
 
 function AnnotationPage() {
   const {
@@ -26,11 +28,48 @@ function AnnotationPage() {
 
   const currentImage = getCurrentImage();
   const annotations = getAnnotations();
+  const [isAIProcessing, setIsAIProcessing] = React.useState(false);
+
+  const handleAIAnnotate = async () => {
+    const currentImage = getCurrentImage();
+    if (!currentImage || !aiService.isEnabled()) {
+      toast.error("AI feature is not available");
+      return;
+    }
+
+    setIsAIProcessing(true);
+    toast.loading("AI is analyzing the image...", { id: "ai-loading" });
+
+    try {
+      const detectedObjects = await aiService.analyzeImage(currentImage.url);
+
+      const canvas = document.querySelector("canvas");
+      if (!canvas) throw new Error("Canvas not found");
+
+      const newAnnotations = aiService.convertToAnnotations(
+        detectedObjects,
+        canvas.width,
+        canvas.height
+      );
+
+      setAnnotations([...annotations, ...newAnnotations]);
+      await saveAnnotations();
+
+      toast.success(`Detected ${newAnnotations.length} objects!`, {
+        id: "ai-loading",
+      });
+    } catch (error) {
+      console.error("AI annotation failed:", error);
+      toast.error("AI annotation failed", { id: "ai-loading" });
+    } finally {
+      setIsAIProcessing(false);
+    }
+  };
 
   useEffect(() => {
     loadImages();
-  }, [] );
-  
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       const isUndo =
@@ -65,8 +104,8 @@ function AnnotationPage() {
   }, [undo, redo]);
 
   const handleAddImage = async (file: File) => {
-  await addImage(file);
-};
+    await addImage(file);
+  };
   const handleSelectImage = useCallback(selectImage, [selectImage]);
   const handleSetAnnotations = useCallback(
     async (annotations: Box[]) => {
@@ -80,21 +119,8 @@ function AnnotationPage() {
   ]);
   const handleUpdateLabel = useCallback(updateLabel, [updateLabel]);
 
-  const [shouldThrowError, setShouldThrowError] = React.useState(false);
-
-  if (shouldThrowError) {
-    throw new Error("This is a test error!");
-  }
-
   return (
     <div className="flex flex-1 overflow-hidden bg-gray-50 border-t border-gray-200">
-      <button
-        onClick={() => setShouldThrowError(true)}
-        className="absolute bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded z-50"
-      >
-        Test Error Boundary
-      </button>
-
       <Sidebar
         images={images}
         currentImageIndex={currentImageIndex}
@@ -107,6 +133,7 @@ function AnnotationPage() {
         annotations={annotations}
         setAnnotations={handleSetAnnotations}
         onDelete={handleDeleteAnnotation}
+        onAIAnnotate={handleAIAnnotate}
       />
       <AnnotationList
         annotations={annotations}

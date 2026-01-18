@@ -14,6 +14,7 @@ interface CanvasProps {
   annotations: Box[];
   setAnnotations: (boxes: Box[]) => void;
   onDelete: (index: number) => void;
+  onAIAnnotate?: () => void;
 }
 
 function Canvas({
@@ -21,6 +22,7 @@ function Canvas({
   annotations,
   setAnnotations,
   onDelete,
+  onAIAnnotate,
 }: CanvasProps) {
   //Get the canvas element
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -212,6 +214,17 @@ function Canvas({
     <div className="flex-1 bg-white p-6 flex items-center justify-center overflow-auto border-x border-gray-200">
       {imageUrl ? (
         <>
+          {onAIAnnotate && (
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                onClick={onAIAnnotate}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium"
+              >
+                <span>✨</span>
+                <span>AI Auto-label</span>
+              </button>
+            </div>
+          )}
           <canvas
             ref={canvasRef}
             height={600}
