@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 const AI_ENABLED = false;
-const API_KEY = (import.meta as any).env.VITE_OPENAI_API_KEY;
+const API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 
 const openai =
   AI_ENABLED && API_KEY
