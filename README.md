@@ -15,6 +15,7 @@ A full-stack image annotation tool with AI-powered auto-labeling capabilities. B
 ## ✨ Features
 
 ### 🎯 Core Annotation Tools
+
 - **Multi-Image Management** - Upload and manage multiple images with independent annotation data
 - **Precise Bounding Boxes** - Draw accurate annotation boxes with mouse interactions
 - **Smart Labeling** - Add, edit, and delete labels for each annotation
@@ -23,10 +24,12 @@ A full-stack image annotation tool with AI-powered auto-labeling capabilities. B
 - **JSON Export** - Export annotations in COCO format
 
 ### 🤖 AI-Powered Features
+
 - **AI Auto-Labeling** - Automatic object detection using GPT-4 Vision API (optional)
 - **Color-Coded Annotations** - Each annotation gets a unique color for easy identification
 
 ### 🎨 User Experience
+
 - **Modern UI** - Glass-morphism design with purple gradient theme
 - **Responsive Layout** - Three-panel interface optimized for workflow
 - **Real-time Feedback** - Toast notifications for all operations
@@ -46,60 +49,72 @@ A full-stack image annotation tool with AI-powered auto-labeling capabilities. B
 ## 📸 Screenshots
 
 ### Main Interface
+
 ![Main Interface](screenshots/main-interface.png)
-*Three-panel workspace: image list (left), annotation canvas (center), annotation management (right)*
+_Three-panel workspace: image list (left), annotation canvas (center), annotation management (right)_
 
 ### AI Auto-Labeling
+
 ![AI Auto-Labeling](screenshots/ai-annotation1.png)
 ![AI Auto-Labeling](screenshots/ai-annotation2.png)
 ![AI Auto-Labeling](screenshots/ai-annotation3.png)
 ![AI Auto-Labeling](screenshots/ai-annotation4.png)
-*AI-powered automatic object detection with GPT-4 Vision*
+_AI-powered automatic object detection with GPT-4 Vision_
 
 ### Annotation Management
+
 ![Annotation List](screenshots/annotation-list.png)
-*Edit labels, view coordinates, and manage all annotations*
+
+_Edit labels, view coordinates, and manage all annotations_
 
 ### Multi-Image Support
+
 ![Multi-Image](screenshots/multi-image.png)
-*Switch between multiple images with independent annotation data*
+
+_Switch between multiple images with independent annotation data_
 
 ### Delete Confirmation
+
 ![Delete Confirmation](screenshots/double-check.png)
-*Confirmation dialog prevents accidental deletion of images and annotations*
+_Confirmation dialog prevents accidental deletion of images and annotations_
 
 ### Error Handling
-![Error Boundary](screenshots/error-boundary.png)
-*Error boundary catches unexpected errors and provides graceful fallback UI*
+
+![Error Boundary](screenshots/error-test.png)
+_Error boundary catches unexpected errors and provides graceful fallback UI_
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-| Technology | Purpose | Version |
-|-----------|---------|---------|
-| React | UI Framework | 19.x |
-| TypeScript | Type Safety | 4.x |
-| Zustand | State Management | 5.x |
-| Tailwind CSS | Styling | 3.x |
-| Canvas API | Drawing | Native |
-| react-hot-toast | Notifications | 2.x |
+
+| Technology      | Purpose          | Version |
+| --------------- | ---------------- | ------- |
+| React           | UI Framework     | 19.x    |
+| TypeScript      | Type Safety      | 4.x     |
+| Zustand         | State Management | 5.x     |
+| Tailwind CSS    | Styling          | 3.x     |
+| Canvas API      | Drawing          | Native  |
+| react-hot-toast | Notifications    | 2.x     |
 
 ### Backend
-| Technology | Purpose | Version |
-|-----------|---------|---------|
-| Node.js | Runtime | 18.x |
-| Express | Web Framework | 4.x |
-| PostgreSQL | Database | 15.x |
-| Multer | File Upload | 1.x |
-| Sharp | Image Processing | 0.33.x |
+
+| Technology | Purpose          | Version |
+| ---------- | ---------------- | ------- |
+| Node.js    | Runtime          | 18.x    |
+| Express    | Web Framework    | 4.x     |
+| PostgreSQL | Database         | 15.x    |
+| Multer     | File Upload      | 1.x     |
+| Sharp      | Image Processing | 0.33.x  |
 
 ### AI Integration
+
 - **OpenAI API** - GPT-4 Vision (gpt-4o-mini) for object detection
 - **Base64 Encoding** - Image format conversion for API compatibility
 
 ### Deployment
+
 - **Frontend:** Vercel (Free tier)
 - **Backend:** Render (Free tier)
 - **Database:** Render PostgreSQL (Free tier)
@@ -109,6 +124,7 @@ A full-stack image annotation tool with AI-powered auto-labeling capabilities. B
 ## 📦 Getting Started
 
 ### Prerequisites
+
 - Node.js 16+
 - PostgreSQL 12+
 - npm or yarn
@@ -116,29 +132,34 @@ A full-stack image annotation tool with AI-powered auto-labeling capabilities. B
 ### Backend Setup
 
 1. **Clone and navigate:**
+
 ```bash
 git clone https://github.com/zackJin1224/Image-annotator.git
 cd Image-annotator/backend
 ```
 
 2. **Install dependencies:**
+
 ```bash
 npm install
 ```
 
 3. **Create database:**
+
 ```bash
 createdb image_annotation
 psql -d image_annotation -f schema.sql
 ```
 
 4. **Configure environment:**
+
 ```bash
 cp .env.example .env
 # Edit .env with your database credentials
 ```
 
 5. **Start server:**
+
 ```bash
 npm start
 ```
@@ -148,18 +169,21 @@ Server runs at `http://localhost:5001`
 ### Frontend Setup
 
 1. **Navigate and install:**
+
 ```bash
 cd ../frontend
 npm install
 ```
 
 2. **Configure API endpoint:**
+
 ```bash
 # Create .env file (optional for local development)
 REACT_APP_API_BASE_URL=http://localhost:5001
 ```
 
 3. **Start development server:**
+
 ```bash
 npm start
 ```
@@ -173,22 +197,26 @@ Application runs at `http://localhost:3000`
 ### Basic Workflow
 
 1. **Upload Images**
+
    - Click "📤 Upload Image" button
    - Select one or multiple images
    - Images appear in left sidebar
 
 2. **Create Annotations**
+
    - Click and drag on canvas to draw bounding box
    - Enter label in popup input
    - Press Enter to confirm, Escape to cancel
 
 3. **Manage Annotations**
+
    - View all annotations in right panel
    - Click label to edit
    - Click X to delete
    - Use Delete key to remove selected annotation
 
 4. **Keyboard Shortcuts**
+
 ```
    Cmd/Ctrl + Z          Undo
    Cmd/Ctrl + Shift + Z  Redo
@@ -198,6 +226,7 @@ Application runs at `http://localhost:3000`
 ```
 
 5. **AI Auto-Labeling** (Optional)
+
    - Click "✨ AI Auto-label" button
    - Wait 5-10 seconds for processing
    - AI automatically detects objects and creates annotations
@@ -208,6 +237,7 @@ Application runs at `http://localhost:3000`
    - Includes image metadata and bounding box coordinates
 
 ### Tips & Tricks
+
 - Annotations auto-save after each change
 - Each image maintains independent annotation history
 - Refresh page to verify data persistence
@@ -218,6 +248,7 @@ Application runs at `http://localhost:3000`
 ## 🏗️ Architecture
 
 ### Database Schema
+
 ```sql
 -- Images table
 CREATE TABLE images (
@@ -252,6 +283,7 @@ CREATE INDEX idx_images_created_at ON images(created_at);
 ### API Endpoints
 
 #### Images
+
 ```
 GET    /api/images           - List all images
 GET    /api/images/:id       - Get image with annotations
@@ -260,6 +292,7 @@ DELETE /api/images/:id       - Delete image (cascade)
 ```
 
 #### Annotations
+
 ```
 GET    /api/images/:imageId/annotations          - Get image annotations
 POST   /api/images/:imageId/annotations          - Create annotation
@@ -271,12 +304,13 @@ DELETE /api/annotations/:id                      - Delete annotation
 ### State Management
 
 **Zustand Store Structure:**
+
 ```typescript
 interface AnnotationStore {
-  images: ImageData[];                    // All uploaded images
-  currentImageIndex: number;              // Active image index
-  imageHistories: Map<string, History>;   // Per-image undo/redo stacks
-  
+  images: ImageData[]; // All uploaded images
+  currentImageIndex: number; // Active image index
+  imageHistories: Map<string, History>; // Per-image undo/redo stacks
+
   // Actions
   loadImages: () => Promise<void>;
   addImage: (file: File) => Promise<void>;
@@ -296,21 +330,25 @@ interface AnnotationStore {
 ### How It Works
 
 1. **Image Preparation**
+
    - Convert image URL to Base64 format
    - Required because OpenAI cannot access localhost URLs
 
 2. **API Call**
+
 ```typescript
-   const response = await openai.chat.completions.create({
-     model: "gpt-4o-mini",
-     messages: [{
-       role: "user",
-       content: [
-         { type: "text", text: "Detect objects and return bounding boxes..." },
-         { type: "image_url", image_url: { url: base64Image } }
-       ]
-     }]
-   });
+const response = await openai.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "Detect objects and return bounding boxes..." },
+        { type: "image_url", image_url: { url: base64Image } },
+      ],
+    },
+  ],
+});
 ```
 
 3. **Result Processing**
@@ -322,17 +360,20 @@ interface AnnotationStore {
 ### Configuration
 
 **Development (with AI):**
+
 ```env
 REACT_APP_AI_ENABLED=true
 REACT_APP_OPENAI_API_KEY=your_api_key_here
 ```
 
 **Production (without AI):**
+
 ```env
 REACT_APP_AI_ENABLED=false
 ```
 
 ### Cost Analysis
+
 - Model: gpt-4o-mini
 - Cost: ~$0.001 per image (0.1 cents)
 - $5 credit = ~5000 image analyses
@@ -344,16 +385,19 @@ REACT_APP_AI_ENABLED=false
 ### Backend (Render)
 
 1. **Create PostgreSQL Database**
+
    - Choose free tier
    - Note the Internal Database URL
 
 2. **Create Web Service**
+
    - Connect GitHub repository
    - Root directory: `backend`
    - Build: `npm install`
    - Start: `npm start`
 
 3. **Environment Variables**
+
 ```env
    DATABASE_URL=your_postgres_url
    NODE_ENV=production
@@ -366,17 +410,20 @@ REACT_APP_AI_ENABLED=false
 ### Frontend (Vercel)
 
 1. **Import Project**
+
    - Select GitHub repository
    - Framework: Create React App
    - Root directory: `frontend`
 
 2. **Build Settings**
+
 ```
    Build Command: npm run build
    Output Directory: build
 ```
 
 3. **Environment Variables**
+
 ```env
    REACT_APP_API_BASE_URL=https://your-backend.onrender.com
 ```
@@ -415,6 +462,7 @@ REACT_APP_AI_ENABLED=false
 ## 🎯 Future Enhancements
 
 ### Planned Features
+
 - [ ] User authentication (JWT)
 - [ ] Polygon and polyline annotations
 - [ ] Annotation templates
@@ -426,6 +474,7 @@ REACT_APP_AI_ENABLED=false
 - [ ] Keyboard shortcut customization
 
 ### Technical Improvements
+
 - [ ] Unit tests (Jest + React Testing Library)
 - [ ] E2E tests (Cypress)
 - [ ] API documentation (Swagger)
@@ -437,14 +486,14 @@ REACT_APP_AI_ENABLED=false
 
 ## 📊 Project Metrics
 
-| Metric | Value |
-|--------|-------|
-| Development Time | 18 days |
-| Lines of Code | ~1,200 (excluding comments) |
-| Components | 5 |
-| API Endpoints | 8 |
-| Database Tables | 2 |
-| Git Commits | 30+ |
+| Metric           | Value                       |
+| ---------------- | --------------------------- |
+| Development Time | 20 days                     |
+| Lines of Code    | ~1,200 (excluding comments) |
+| Components       | 5                           |
+| API Endpoints    | 8                           |
+| Database Tables  | 2                           |
+| Git Commits      | 30+                         |
 
 ---
 
@@ -453,17 +502,20 @@ REACT_APP_AI_ENABLED=false
 If you're interested in building something similar, here are the key concepts:
 
 ### Frontend
+
 - [React Official Docs](https://react.dev/)
 - [Zustand State Management](https://zustand-demo.pmnd.rs/)
 - [Canvas API Tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
 ### Backend
+
 - [Express.js Guide](https://expressjs.com/en/guide/routing.html)
 - [PostgreSQL Tutorial](https://www.postgresql.org/docs/current/tutorial.html)
 - [Multer Documentation](https://github.com/expressjs/multer)
 
 ### Deployment
+
 - [Vercel Deployment](https://vercel.com/docs)
 - [Render Documentation](https://render.com/docs)
 
@@ -474,6 +526,7 @@ If you're interested in building something similar, here are the key concepts:
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Development Workflow
+
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
@@ -500,6 +553,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### About This Project
 
 This project was built as part of my journey to become a full-stack developer. It demonstrates:
+
 - Strong frontend skills (React, TypeScript, state management)
 - Backend development (Node.js, Express, PostgreSQL)
 - AI integration (OpenAI Vision API)
@@ -521,6 +575,7 @@ This project was built as part of my journey to become a full-stack developer. I
 ## 📮 Contact
 
 Have questions or suggestions? Feel free to:
+
 - 📧 Email me at zachjin1224@gmail.com
 - 💬 Open an issue on GitHub
 - 🤝 Connect on [LinkedIn](https://www.linkedin.com/in/zijing-jin1224)
@@ -530,7 +585,5 @@ Have questions or suggestions? Feel free to:
 <div align="center">
 
 **⭐ If you find this project helpful, please give it a star! ⭐**
-
-Made with ❤️ by [Zijing Jin](https://github.com/zackJin1224)
 
 </div>
