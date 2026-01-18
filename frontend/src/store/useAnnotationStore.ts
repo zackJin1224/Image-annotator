@@ -355,6 +355,9 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         imageHistories: newHistories,
       };
     });
+    setTimeout(() => {
+      get().saveAnnotations();
+    }, 100);
   },
 
   redo: () => {
@@ -390,6 +393,9 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         imageHistories: newHistories,
       };
     });
+    setTimeout(() => {
+      get().saveAnnotations();
+    }, 100);
   },
 
   exportJSON: () => {
