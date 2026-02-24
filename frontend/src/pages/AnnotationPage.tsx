@@ -39,7 +39,14 @@ function AnnotationPage() {
     toast.loading("AI is analyzing the image...", { id: "ai-loading" });
 
     try {
-      const detectedObjects = await aiService.analyzeImage(currentImage.url);
+      
+      const domain = aiService.detectDomain(currentImage.fileName);
+      console.log("Detected domain:", domain); 
+
+      const detectedObjects = await aiService.analyzeImage(
+        currentImage.url,
+        domain, 
+      );
 
       const canvas = document.querySelector("canvas");
       if (!canvas) throw new Error("Canvas not found");
@@ -47,19 +54,19 @@ function AnnotationPage() {
       const newAnnotations = aiService.convertToAnnotations(
         detectedObjects,
         canvas.width,
-        canvas.height
+        canvas.height,
       );
 
       setAnnotations([...annotations, ...newAnnotations]);
       await saveAnnotations();
 
-      toast.success(`Detected ${newAnnotations.length} objects!`, {
-        id: "ai-loading",
-      });
+      toast.success(
+        `[${domain}] Detected ${newAnnotations.length} objects!`, 
+        { id: "ai-loading" },
+      );
     } catch (error) {
       console.error("AI annotation failed:", error);
       toast.error("AI annotation failed", { id: "ai-loading" });
-    } finally {
     }
   };
 
@@ -110,7 +117,7 @@ function AnnotationPage() {
       setAnnotations(annotations);
       await saveAnnotations();
     },
-    [setAnnotations, saveAnnotations]
+    [setAnnotations, saveAnnotations],
   );
   const handleDeleteAnnotation = useCallback(deleteAnnotation, [
     deleteAnnotation,

@@ -56,10 +56,14 @@ _Three-panel workspace: image list (left), annotation canvas (center), annotatio
 ### AI Auto-Labeling
 
 ![AI Auto-Labeling](screenshots/ai-annotation1.png)
+_Pneumonia chest X-ray: AI detected Cardiomegaly (75%), Pleural Effusion (70%), and Nodule (65%). Color-coded by confidence — green ≥80%, yellow 50–80%, red <50%._
+
 ![AI Auto-Labeling](screenshots/ai-annotation2.png)
+_Normal chest X-ray: AI flagged several low-confidence regions that don't correspond to real pathology — highlighting why **human-in-the-loop review is essential**. The platform is designed for AI to generate a draft, with radiologists confirming or dismissing each annotation._
+
 ![AI Auto-Labeling](screenshots/ai-annotation3.png)
 ![AI Auto-Labeling](screenshots/ai-annotation4.png)
-_AI-powered automatic object detection with GPT-4 Vision_
+_Autonomous driving scene: AI identified Cars, Trucks, Traffic Signs, and Lane Markings with high confidence (85–95%), demonstrating domain-specific prompt tuning for different use cases._
 
 ### Annotation Management
 
@@ -84,9 +88,10 @@ _Confirmation dialog prevents accidental deletion of images and annotations_
 _Error boundary catches unexpected errors and provides graceful fallback UI_
 
 ### JSON Export
+
 ![JSON Export](screenshots/export-json.png)
 
-*Export annotations in COCO format for machine learning and data analysis*
+_Export annotations in COCO format for machine learning and data analysis_
 
 ---
 
@@ -202,19 +207,16 @@ Application runs at `http://localhost:3000`
 ### Basic Workflow
 
 1. **Upload Images**
-
    - Click "📤 Upload Image" button
    - Select one or multiple images
    - Images appear in left sidebar
 
 2. **Create Annotations**
-
    - Click and drag on canvas to draw bounding box
    - Enter label in popup input
    - Press Enter to confirm, Escape to cancel
 
 3. **Manage Annotations**
-
    - View all annotations in right panel
    - Click label to edit
    - Click X to delete
@@ -231,7 +233,6 @@ Application runs at `http://localhost:3000`
 ```
 
 5. **AI Auto-Labeling** (Optional)
-
    - Click "✨ AI Auto-label" button
    - Wait 5-10 seconds for processing
    - AI automatically detects objects and creates annotations
@@ -335,7 +336,6 @@ interface AnnotationStore {
 ### How It Works
 
 1. **Image Preparation**
-
    - Convert image URL to Base64 format
    - Required because OpenAI cannot access localhost URLs
 
@@ -390,12 +390,10 @@ REACT_APP_AI_ENABLED=false
 ### Backend (Render)
 
 1. **Create PostgreSQL Database**
-
    - Choose free tier
    - Note the Internal Database URL
 
 2. **Create Web Service**
-
    - Connect GitHub repository
    - Root directory: `backend`
    - Build: `npm install`
@@ -415,7 +413,6 @@ REACT_APP_AI_ENABLED=false
 ### Frontend (Vercel)
 
 1. **Import Project**
-
    - Select GitHub repository
    - Framework: Create React App
    - Root directory: `frontend`
