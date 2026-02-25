@@ -1,4 +1,6 @@
 export type Box = {
+  id?: string;
+  version?: number;
   startX: number;
   startY: number;
   endX: number;

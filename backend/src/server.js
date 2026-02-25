@@ -3,6 +3,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
+import { createClient } from "redis";
 
 import imageRoutes from "./routes/images.js";
 import annotationRoutes from "./routes/annotations.js";
@@ -16,6 +19,59 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+const server = createServer(app);
+
+// ─── Redis ────────────────────────────────────────────────────────────────────
+const publisher = createClient({ url: "redis://localhost:6379" });
+const subscriber = createClient({ url: "redis://localhost:6379" });
+
+await publisher.connect();
+await subscriber.connect();
+console.log("Redis connected");
+
+// ─── WebSocket Server ─────────────────────────────────────────────────────────
+const wss = new WebSocketServer({ server });
+
+const clients = new Map();
+
+wss.on("connection", (ws) => {
+  console.log("WebSocket client connected");
+
+  ws.on("message", (data) => {
+    try {
+      const msg = JSON.parse(data);
+
+      if (msg.type === "join") {
+        clients.set(ws, msg.imageId);
+        console.log(`Client joined image: ${msg.imageId}`);
+      }
+    } catch (e) {
+      console.error("WS message parse error:", e);
+    }
+  });
+
+  ws.on("close", () => {
+    clients.delete(ws);
+    console.log("WebSocket client disconnected");
+  });
+});
+
+await subscriber.subscribe("annotation-updates", (message) => {
+  const data = JSON.parse(message);
+  data.serverBroadcastTime = Date.now();
+  const { imageId } = data;
+
+  for (const [ws, subscribedImageId] of clients.entries()) {
+    if (subscribedImageId === imageId && ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify(data));
+    }
+  }
+});
+console.log("Subscribed to annotation-updates");
+
+app.set("redisPublisher", publisher);
+
+// ─── Express Middleware ───────────────────────────────────────────────────────
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -23,7 +79,6 @@ app.use(
         "http://localhost:3000",
         "https://image-annotator-theta.vercel.app",
       ];
-
       if (
         !origin ||
         allowedOrigins.indexOf(origin) !== -1 ||
@@ -35,7 +90,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
@@ -59,21 +114,18 @@ app.use("/api/images", imageRoutes);
 app.use("/api", annotationRoutes);
 
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: "Route not found",
-  });
+  res.status(404).json({ success: false, error: "Route not found" });
 });
 
 app.use((err, req, res, next) => {
   console.error("Error:", err);
-
   res.status(err.status || 500).json({
     success: false,
     error: err.message || "Internal server error",
   });
 });
 
+// ─── Database ─────────────────────────────────────────────────────────────────
 const testDatabaseConnection = async () => {
   try {
     await pool.query("SELECT NOW()");
@@ -99,6 +151,7 @@ const testDatabaseConnection = async () => {
         end_x FLOAT NOT NULL,
         end_y FLOAT NOT NULL,
         label VARCHAR(100) NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -117,12 +170,13 @@ const testDatabaseConnection = async () => {
 const startServer = async () => {
   await testDatabaseConnection();
 
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log("=================================");
     console.log("🚀 Server started successfully!");
     console.log(`📡 Port: ${PORT}`);
     console.log(`🌍 URL: http://localhost:${PORT}`);
     console.log(`🏥 Health: http://localhost:${PORT}/health`);
+    console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
     console.log("=================================");
   });
 };

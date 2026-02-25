@@ -1,5 +1,5 @@
 import Annotation from "../models/Annotation.js";
-import pool from '../config/database.js';
+import pool from "../config/database.js";
 
 class AnnotationController {
   static async createAnnotation(req, res) {
@@ -63,21 +63,61 @@ class AnnotationController {
   static async updateAnnotation(req, res) {
     try {
       const { id } = req.params;
-      const updates = req.body;
+      const { label } = req.body;
+      const version = parseInt(req.body.version, 10);
 
-      const annotation = await Annotation.update(id, updates);
-
-      if (!annotation) {
-        return res.status(404).json({
+      if (version === undefined) {
+        return res.status(400).json({
           success: false,
-          error: "Annotation not found",
+          error: "Missing version field",
         });
       }
 
-      res.json({
-        success: true,
-        data: annotation,
-      });
+      const client = await pool.connect();
+
+      try {
+        const current = await client.query(
+          "SELECT version FROM annotations WHERE id = $1",
+          [id],
+        );
+
+        if (current.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: "Annotation not found",
+          });
+        }
+
+        if (current.rows[0].version !== version) {
+          return res.status(409).json({
+            success: false,
+            error: "Conflict: annotation was modified by another user",
+            currentVersion: current.rows[0].version,
+          });
+        }
+
+        const result = await client.query(
+          `UPDATE annotations 
+        SET label = $1, version = version + 1, updated_at = NOW()
+          WHERE id = $2 AND version = $3
+        RETURNING *`,
+          [label, id, version],
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(409).json({
+            success: false,
+            error: "Conflict: please retry",
+          });
+        }
+
+        res.json({
+          success: true,
+          data: result.rows[0],
+        });
+      } finally {
+        client.release();
+      }
     } catch (error) {
       console.error("Error updating annotation:", error);
       res.status(500).json({
@@ -116,7 +156,7 @@ class AnnotationController {
   static async createBatchAnnotations(req, res) {
     try {
       const { imageId } = req.params;
-      const { annotations } = req.body;
+      const { annotations, clientId } = req.body;
 
       if (!Array.isArray(annotations) || annotations.length === 0) {
         return res.status(400).json({
@@ -127,7 +167,7 @@ class AnnotationController {
 
       const createdAnnotations = await Annotation.createBatch(
         imageId,
-        annotations
+        annotations,
       );
 
       res.status(201).json({
@@ -145,7 +185,7 @@ class AnnotationController {
   static async replaceAllAnnotations(req, res) {
     try {
       const { imageId } = req.params;
-      const { annotations } = req.body;
+      const { annotations, clientId } = req.body;
 
       if (!Array.isArray(annotations)) {
         return res.status(400).json({
@@ -185,7 +225,19 @@ class AnnotationController {
         }
 
         await client.query("COMMIT");
-
+        const publisher = req.app.get("redisPublisher");
+        console.log("Publisher exists:", !!publisher);
+        if (publisher) {
+          await publisher.publish(
+            "annotation-updates",
+            JSON.stringify({
+              type: "annotation-update",
+              imageId,
+              annotations: createdAnnotations,
+              clientId,
+            }),
+          );
+        }
         res.json({
           success: true,
           data: createdAnnotations,
@@ -205,7 +257,5 @@ class AnnotationController {
     }
   }
 }
-
-
 
 export default AnnotationController;

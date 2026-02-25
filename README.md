@@ -1,6 +1,6 @@
 # 🎨 Image Annotator
 
-A full-stack image annotation tool with AI-powered auto-labeling capabilities. Built with React, Node.js, PostgreSQL, and OpenAI Vision API.
+A full-stack image annotation tool with AI-powered auto-labeling, real-time collaboration, and conflict detection. Built with React, Node.js, PostgreSQL, Redis, and OpenAI Vision API.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://image-annotator-theta.vercel.app)
 [![Backend](https://img.shields.io/badge/API-render-blue)](https://image-annotator-backend.onrender.com)
@@ -25,8 +25,23 @@ A full-stack image annotation tool with AI-powered auto-labeling capabilities. B
 
 ### 🤖 AI-Powered Features
 
-- **AI Auto-Labeling** - Automatic object detection using GPT-4 Vision API (optional)
-- **Color-Coded Annotations** - Each annotation gets a unique color for easy identification
+- **Domain-Specific AI Auto-Labeling** - Separate prompt pipelines for medical imaging and autonomous driving scenes using GPT-4 Vision API
+- **Confidence-Coded Annotations** - Color-coded bounding boxes by confidence score: green ≥80%, yellow 50–80%, red <50%
+- **Human-in-the-Loop Design** - AI generates draft annotations; users review and correct low-confidence regions
+- **Auto Domain Detection** - Automatically selects the appropriate prompt based on image filename
+
+### 🔴 Real-Time Collaboration
+
+- **WebSocket Sync** - Multiple users can annotate the same dataset simultaneously with live updates
+- **Redis Pub/Sub Broadcast** - Annotation changes are broadcast to all users viewing the same image with <200ms latency
+- **Presence Awareness** - Toast notifications when another user updates annotations
+- **Auto-Reconnect** - WebSocket automatically reconnects on disconnect
+
+### 🔒 Conflict Detection
+
+- **Optimistic Locking** - Version-based conflict detection on annotation updates
+- **Concurrent Edit Protection** - Returns 409 if another user modified the same annotation first
+- **Non-blocking** - Users are never blocked from editing; conflicts are detected at commit time
 
 ### 🎨 User Experience
 
@@ -63,18 +78,16 @@ _Normal chest X-ray: AI flagged several low-confidence regions that don't corres
 
 ![AI Auto-Labeling](screenshots/ai-annotation3.png)
 ![AI Auto-Labeling](screenshots/ai-annotation4.png)
-_Autonomous driving scene: AI identified Cars, Trucks, Traffic Signs, and Lane Markings with high confidence (85–95%), demonstrating domain-specific prompt tuning for different use cases._
+_Autonomous driving scene: AI identified Cars, Trucks, Traffic Signs, and Lane Markings with high confidence (85–95%). The platform uses domain-specific prompts — medical imaging prompts request abnormal regions with confidence scores, while autonomous driving prompts target vehicles, pedestrians, and road infrastructure._
 
 ### Annotation Management
 
 ![Annotation List](screenshots/annotation-list.png)
-
 _Edit labels, view coordinates, and manage all annotations_
 
 ### Multi-Image Support
 
 ![Multi-Image](screenshots/multi-image.png)
-
 _Switch between multiple images with independent annotation data_
 
 ### Delete Confirmation
@@ -90,7 +103,6 @@ _Error boundary catches unexpected errors and provides graceful fallback UI_
 ### JSON Export
 
 ![JSON Export](screenshots/export-json.png)
-
 _Export annotations in COCO format for machine learning and data analysis_
 
 ---
@@ -106,21 +118,25 @@ _Export annotations in COCO format for machine learning and data analysis_
 | Zustand         | State Management | 5.x     |
 | Tailwind CSS    | Styling          | 3.x     |
 | Canvas API      | Drawing          | Native  |
+| WebSocket API   | Real-time Sync   | Native  |
 | react-hot-toast | Notifications    | 2.x     |
 
 ### Backend
 
-| Technology | Purpose          | Version |
-| ---------- | ---------------- | ------- |
-| Node.js    | Runtime          | 18.x    |
-| Express    | Web Framework    | 4.x     |
-| PostgreSQL | Database         | 15.x    |
-| Multer     | File Upload      | 1.x     |
-| Sharp      | Image Processing | 0.33.x  |
+| Technology | Purpose             | Version |
+| ---------- | ------------------- | ------- |
+| Node.js    | Runtime             | 18.x    |
+| Express    | Web Framework       | 4.x     |
+| PostgreSQL | Database            | 15.x    |
+| Redis      | Pub/Sub Broadcast   | 8.x     |
+| ws         | WebSocket Server    | 8.x     |
+| Multer     | File Upload         | 1.x     |
+| Sharp      | Image Processing    | 0.33.x  |
 
 ### AI Integration
 
 - **OpenAI API** - GPT-4 Vision (gpt-4o-mini) for object detection
+- **Domain-Specific Prompts** - Separate prompt pipelines for medical imaging and autonomous driving
 - **Base64 Encoding** - Image format conversion for API compatibility
 
 ### Deployment
@@ -137,6 +153,7 @@ _Export annotations in COCO format for machine learning and data analysis_
 
 - Node.js 16+
 - PostgreSQL 12+
+- Redis 6+
 - npm or yarn
 
 ### Backend Setup
@@ -154,21 +171,25 @@ cd Image-annotator/backend
 npm install
 ```
 
-3. **Create database:**
+3. **Start Redis:**
 
 ```bash
-createdb image_annotation
-psql -d image_annotation -f schema.sql
+redis-server &
 ```
 
-4. **Configure environment:**
+4. **Create database:**
+
+```bash
+createdb jing
+```
+
+5. **Configure environment:**
 
 ```bash
 cp .env.example .env
-# Edit .env with your database credentials
 ```
 
-5. **Start server:**
+6. **Start server:**
 
 ```bash
 npm start
@@ -188,7 +209,6 @@ npm install
 2. **Configure API endpoint:**
 
 ```bash
-# Create .env file (optional for local development)
 REACT_APP_API_BASE_URL=http://localhost:5001
 ```
 
@@ -225,22 +245,27 @@ Application runs at `http://localhost:3000`
 4. **Keyboard Shortcuts**
 
 ```
-   Cmd/Ctrl + Z          Undo
-   Cmd/Ctrl + Shift + Z  Redo
-   Delete/Backspace      Delete selected annotation
-   Escape                Cancel current action
-   Enter                 Confirm label input
+Cmd/Ctrl + Z          Undo
+Cmd/Ctrl + Shift + Z  Redo
+Delete/Backspace      Delete selected annotation
+Escape                Cancel current action
+Enter                 Confirm label input
 ```
 
 5. **AI Auto-Labeling** (Optional)
+   - Name your image with keywords like `chest_xray`, `skin_lesion`, `kitti_driving`, or `bdd_street` for automatic domain detection
    - Click "✨ AI Auto-label" button
    - Wait 5-10 seconds for processing
-   - AI automatically detects objects and creates annotations
+   - AI automatically detects objects and creates color-coded annotations
 
-6. **Export Data**
+6. **Real-Time Collaboration**
+   - Open the same image in multiple browser tabs or windows
+   - Annotations sync in real time across all connected users
+   - Toast notification appears when another user updates annotations
+
+7. **Export Data**
    - Click "📥 Export JSON" button
    - Downloads COCO-format annotation file
-   - Includes image metadata and bounding box coordinates
 
 ### Tips & Tricks
 
@@ -256,7 +281,6 @@ Application runs at `http://localhost:3000`
 ### Database Schema
 
 ```sql
--- Images table
 CREATE TABLE images (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     file_name VARCHAR(255) NOT NULL,
@@ -268,7 +292,6 @@ CREATE TABLE images (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Annotations table
 CREATE TABLE annotations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     image_id UUID REFERENCES images(id) ON DELETE CASCADE,
@@ -277,11 +300,11 @@ CREATE TABLE annotations (
     end_x FLOAT NOT NULL,
     end_y FLOAT NOT NULL,
     label VARCHAR(100) NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
 CREATE INDEX idx_annotations_image_id ON annotations(image_id);
 CREATE INDEX idx_images_created_at ON images(created_at);
 ```
@@ -302,22 +325,33 @@ DELETE /api/images/:id       - Delete image (cascade)
 ```
 GET    /api/images/:imageId/annotations          - Get image annotations
 POST   /api/images/:imageId/annotations          - Create annotation
-PUT    /api/images/:imageId/annotations          - Replace all annotations
-PUT    /api/annotations/:id                      - Update annotation
+PUT    /api/images/:imageId/annotations          - Replace all annotations (broadcasts via Redis)
+PUT    /api/annotations/:id                      - Update annotation (Optimistic Locking)
 DELETE /api/annotations/:id                      - Delete annotation
 ```
 
-### State Management
+### Real-Time Architecture
 
-**Zustand Store Structure:**
+```
+User A draws box → PUT /api/images/:id/annotations
+                 → Redis PUBLISH annotation-updates
+                 → Redis subscriber receives message
+                 → WebSocket broadcast to all clients on same imageId
+                 → User B receives update, UI re-renders
+```
+
+**Measured broadcast latency: ~2ms** (local network, Redis + WebSocket pipeline)
+
+### State Management
 
 ```typescript
 interface AnnotationStore {
-  images: ImageData[]; // All uploaded images
-  currentImageIndex: number; // Active image index
-  imageHistories: Map<string, History>; // Per-image undo/redo stacks
+  images: ImageData[];
+  currentImageIndex: number;
+  imageHistories: Map<string, History>;
+  ws: WebSocket | null;
+  clientId: string | null;
 
-  // Actions
   loadImages: () => Promise<void>;
   addImage: (file: File) => Promise<void>;
   selectImage: (index: number) => void;
@@ -326,6 +360,8 @@ interface AnnotationStore {
   saveAnnotations: () => Promise<void>;
   undo: () => void;
   redo: () => void;
+  initWebSocket: () => void;
+  joinImageChannel: (imageId: string) => void;
 }
 ```
 
@@ -333,48 +369,47 @@ interface AnnotationStore {
 
 ## 🤖 AI Integration
 
-### How It Works
+### Domain-Specific Prompts
 
-1. **Image Preparation**
-   - Convert image URL to Base64 format
-   - Required because OpenAI cannot access localhost URLs
+The platform uses separate prompt pipelines depending on the image type:
 
-2. **API Call**
+**Medical Imaging** (chest X-rays, fundus photos, skin lesions):
+- Requests abnormal regions with bounding boxes and confidence scores
+- Labels include: Cardiomegaly, Pleural Effusion, Nodule, Skin Lesion, Optic Disc
+- Confidence scores drive color-coding to highlight regions needing human review
 
+**Autonomous Driving** (street scenes, KITTI, BDD100K):
+- Targets vehicles, vulnerable road users, and road infrastructure
+- Labels include: Car, Truck, Pedestrian, Traffic Light, Lane Marking
+- Optimized for detecting all objects in a scene including partial occlusions
+
+**Auto Detection:**
 ```typescript
-const response = await openai.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [
-    {
-      role: "user",
-      content: [
-        { type: "text", text: "Detect objects and return bounding boxes..." },
-        { type: "image_url", image_url: { url: base64Image } },
-      ],
-    },
-  ],
-});
+detectDomain(fileName: string): ImageDomain {
+  if (fileName.includes("xray") || fileName.includes("chest")) return "medical";
+  if (fileName.includes("kitti") || fileName.includes("driving")) return "autonomous_driving";
+  return "general";
+}
 ```
 
-3. **Result Processing**
-   - Parse JSON response
-   - Convert percentage coordinates to pixels
-   - Create annotations with random colors
-   - Auto-save to database
+### Prompt Evaluation (IoU Benchmark)
 
-### Configuration
+Evaluated on 5 manually annotated ground truth boxes from a BDD100K street scene:
 
-**Development (with AI):**
+| Metric                  | Domain-Specific | General |
+| ----------------------- | --------------- | ------- |
+| Match Rate (IoU ≥ 0.3)  | 20.0%           | 20.0%   |
+| Average IoU             | 0.142           | 0.153   |
+| Detections              | 5               | 6       |
 
-```env
-REACT_APP_AI_ENABLED=true
-REACT_APP_OPENAI_API_KEY=your_api_key_here
+While bounding box localization accuracy is similar across both prompts, domain-specific prompts produce semantically correct labels for the driving context (e.g., "Traffic Sign" vs. "tree" for the same region). Results confirm that GPT-4 Vision is best suited for draft annotation, validating the human-in-the-loop design.
+
+### Confidence Color Coding
+
 ```
-
-**Production (without AI):**
-
-```env
-REACT_APP_AI_ENABLED=false
+Green  (#22c55e)  confidence ≥ 80%  — high confidence, likely correct
+Yellow (#f59e0b)  confidence 50–79% — medium confidence, review recommended
+Red    (#ef4444)  confidence < 50%  — low confidence, human review required
 ```
 
 ### Cost Analysis
@@ -385,104 +420,84 @@ REACT_APP_AI_ENABLED=false
 
 ---
 
+## 🔴 Real-Time Collaboration
+
+### How It Works
+
+1. Client connects via WebSocket on page load
+2. Client joins the current image's channel (`{ type: "join", imageId }`)
+3. On every save, backend publishes to Redis `annotation-updates` channel
+4. Redis subscriber broadcasts to all WebSocket clients on the same imageId
+5. Each client filters out its own updates using a unique `clientId`
+
+### Conflict Detection (Optimistic Locking)
+
+Each annotation has a `version` field in the database. On update:
+
+1. Backend reads current version
+2. If submitted version doesn't match → return `409 Conflict`
+3. If versions match → update and increment version
+4. Frontend catches 409 and shows conflict toast to user
+
+```
+User A reads annotation (version=1)
+User B reads annotation (version=1)
+User A updates → version becomes 2
+User B updates with version=1 → 409 Conflict returned
+```
+
+---
+
 ## 🚀 Deployment
 
 ### Backend (Render)
 
-1. **Create PostgreSQL Database**
-   - Choose free tier
-   - Note the Internal Database URL
-
-2. **Create Web Service**
-   - Connect GitHub repository
-   - Root directory: `backend`
-   - Build: `npm install`
-   - Start: `npm start`
-
-3. **Environment Variables**
+1. Create PostgreSQL Database on Render free tier
+2. Create Web Service connected to GitHub repository
+3. Set environment variables:
 
 ```env
-   DATABASE_URL=your_postgres_url
-   NODE_ENV=production
+DATABASE_URL=your_postgres_url
+NODE_ENV=production
 ```
 
-4. **Automatic Table Creation**
-   - Tables are created automatically on first run
-   - See `src/server.js` for schema initialization
+> **Note:** Redis Pub/Sub and WebSocket collaboration features require a Redis instance and are currently active in local development only.
 
 ### Frontend (Vercel)
 
-1. **Import Project**
-   - Select GitHub repository
-   - Framework: Create React App
-   - Root directory: `frontend`
-
-2. **Build Settings**
-
-```
-   Build Command: npm run build
-   Output Directory: build
-```
-
-3. **Environment Variables**
+1. Import project from GitHub, framework: Create React App
+2. Root directory: `frontend`
+3. Set environment variables:
 
 ```env
-   REACT_APP_API_BASE_URL=https://your-backend.onrender.com
+REACT_APP_API_BASE_URL=https://your-backend.onrender.com
 ```
-
-4. **Deploy**
-   - Automatic deployment on every push to main branch
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Backend Issues
+**Database connection failed** — Verify `DATABASE_URL` in environment variables
 
-**Problem:** Database connection failed  
-**Solution:** Verify `DATABASE_URL` in environment variables
+**Redis connection refused** — Run `redis-server &` before starting the backend
 
-**Problem:** CORS errors  
-**Solution:** Check allowed origins in `server.js`
+**WebSocket not connecting** — Ensure backend is running and check browser console for errors
 
-**Problem:** Images not loading  
-**Solution:** Verify `uploads/` directory exists and has write permissions
+**CORS errors** — Check allowed origins in `server.js`
 
-### Frontend Issues
-
-**Problem:** API requests failing  
-**Solution:** Check `REACT_APP_API_BASE_URL` is set correctly
-
-**Problem:** Annotations disappearing  
-**Solution:** Ensure auto-save is working (check browser console)
-
-**Problem:** Build errors  
-**Solution:** Delete `node_modules` and run `npm install` again
+**Annotations disappearing** — Ensure auto-save is working (check browser console)
 
 ---
 
 ## 🎯 Future Enhancements
 
-### Planned Features
-
 - [ ] User authentication (JWT)
 - [ ] Polygon and polyline annotations
-- [ ] Annotation templates
-- [ ] Collaboration features
 - [ ] Advanced export formats (YOLO, Pascal VOC)
-- [ ] Image preprocessing tools
+- [ ] Evaluation pipeline: IoU scoring against ground truth datasets (KITTI, NIH)
 - [ ] Annotation statistics dashboard
-- [ ] Batch operations
-- [ ] Keyboard shortcut customization
-
-### Technical Improvements
-
-- [ ] Unit tests (Jest + React Testing Library)
-- [ ] E2E tests (Cypress)
-- [ ] API documentation (Swagger)
 - [ ] Docker containerization
-- [ ] CI/CD pipeline
-- [ ] Performance monitoring
+- [ ] Unit and E2E tests
 
 ---
 
@@ -490,56 +505,12 @@ REACT_APP_AI_ENABLED=false
 
 | Metric           | Value                       |
 | ---------------- | --------------------------- |
-| Development Time | 20 days                     |
-| Lines of Code    | ~1,200 (excluding comments) |
+| Development Time | ~25 days                    |
+| Lines of Code    | ~1,800 (excluding comments) |
 | Components       | 5                           |
-| API Endpoints    | 8                           |
+| API Endpoints    | 9                           |
 | Database Tables  | 2                           |
 | Git Commits      | 30+                         |
-
----
-
-## 📚 Learning Resources
-
-If you're interested in building something similar, here are the key concepts:
-
-### Frontend
-
-- [React Official Docs](https://react.dev/)
-- [Zustand State Management](https://zustand-demo.pmnd.rs/)
-- [Canvas API Tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-
-### Backend
-
-- [Express.js Guide](https://expressjs.com/en/guide/routing.html)
-- [PostgreSQL Tutorial](https://www.postgresql.org/docs/current/tutorial.html)
-- [Multer Documentation](https://github.com/expressjs/multer)
-
-### Deployment
-
-- [Vercel Deployment](https://vercel.com/docs)
-- [Render Documentation](https://render.com/docs)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Development Workflow
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -552,16 +523,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🐙 [GitHub](https://github.com/zackJin1224)
 - 📧 Email: zachjin1224@gmail.com
 
-### About This Project
-
-This project was built as part of my journey to become a full-stack developer. It demonstrates:
-
-- Strong frontend skills (React, TypeScript, state management)
-- Backend development (Node.js, Express, PostgreSQL)
-- AI integration (OpenAI Vision API)
-- Production deployment (Vercel, Render)
-- Problem-solving and architecture decisions
-
 ---
 
 ## 🙏 Acknowledgments
@@ -569,23 +530,4 @@ This project was built as part of my journey to become a full-stack developer. I
 - [OpenAI](https://openai.com/) for GPT-4 Vision API
 - [Render](https://render.com/) for backend hosting
 - [Vercel](https://vercel.com/) for frontend hosting
-- [React](https://react.dev/) and [TypeScript](https://www.typescriptlang.org/) communities
-- All the developers whose open-source projects made this possible
-
----
-
-## 📮 Contact
-
-Have questions or suggestions? Feel free to:
-
-- 📧 Email me at zachjin1224@gmail.com
-- 💬 Open an issue on GitHub
-- 🤝 Connect on [LinkedIn](https://www.linkedin.com/in/zijing-jin1224)
-
----
-
-<div align="center">
-
-**⭐ If you find this project helpful, please give it a star! ⭐**
-
-</div>
+- [Redis](https://redis.io/) for Pub/Sub infrastructure

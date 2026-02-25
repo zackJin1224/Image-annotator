@@ -1,7 +1,7 @@
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL
   ? `${process.env.REACT_APP_API_BASE_URL}/api`
   : "http://localhost:5001/api";
-  
+
 export interface ImageResponse {
   id: string;
   file_name: string;
@@ -20,6 +20,7 @@ export interface AnnotationResponse {
   end_x: number;
   end_y: number;
   label: string;
+  version: number;
   created_at: string;
 }
 
@@ -31,7 +32,7 @@ class ApiService {
   }
 
   async getImageById(
-    id: string
+    id: string,
   ): Promise<ImageResponse & { annotations: AnnotationResponse[] }> {
     const response = await fetch(`${API_BASE_URL}/images/${id}`);
     const data = await response.json();
@@ -64,7 +65,7 @@ class ApiService {
       endX: number;
       endY: number;
       label: string;
-    }
+    },
   ): Promise<AnnotationResponse> {
     const response = await fetch(
       `${API_BASE_URL}/images/${imageId}/annotations`,
@@ -74,7 +75,7 @@ class ApiService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(annotation),
-      }
+      },
     );
     const data = await response.json();
     return data.data;
@@ -82,16 +83,17 @@ class ApiService {
 
   async updateAnnotation(
     id: string,
-    updates: { label?: string }
+    updates: { label?: string; version: number },
   ): Promise<AnnotationResponse> {
     const response = await fetch(`${API_BASE_URL}/annotations/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     const data = await response.json();
+    if (response.status === 409) {
+      throw new Error("CONFLICT");
+    }
     return data.data;
   }
 
@@ -109,7 +111,7 @@ class ApiService {
       endX: number;
       endY: number;
       label: string;
-    }>
+    }>,
   ): Promise<AnnotationResponse[]> {
     const response = await fetch(
       `${API_BASE_URL}/images/${imageId}/annotations/batch`,
@@ -119,7 +121,7 @@ class ApiService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ annotations }),
-      }
+      },
     );
     const data = await response.json();
     return data.data;
@@ -133,17 +135,16 @@ class ApiService {
       endX: number;
       endY: number;
       label: string;
-    }>
+    }>,
+    clientId?: string,
   ): Promise<AnnotationResponse[]> {
     const response = await fetch(
       `${API_BASE_URL}/images/${imageId}/annotations`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ annotations }),
-      }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ annotations, clientId }),
+      },
     );
     const data = await response.json();
     return data.data;

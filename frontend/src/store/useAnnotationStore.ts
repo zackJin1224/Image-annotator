@@ -8,6 +8,8 @@ interface AnnotationStore {
   currentImageIndex: number;
   imageHistories: Map<string, { history: Box[][]; historyIndex: number }>;
   isLoading: boolean;
+  ws: WebSocket | null;
+  clientId: string | null;
 
   getCurrentImage: () => ImageData | null;
   getAnnotations: () => Box[];
@@ -19,7 +21,7 @@ interface AnnotationStore {
   setAnnotations: (annotations: Box[]) => void;
   saveAnnotations: () => Promise<void>;
   deleteAnnotation: (index: number) => Promise<void>;
-  updateLabel: (index: number, newLabel: string) => void;
+  updateLabel: (index: number, newLabel: string) => Promise<void>;
 
   undo: () => void;
   redo: () => void;
@@ -27,6 +29,10 @@ interface AnnotationStore {
   canRedo: () => boolean;
 
   exportJSON: () => void;
+
+  // WebSocket
+  initWebSocket: () => void;
+  joinImageChannel: (imageId: string) => void;
 }
 
 export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
@@ -34,6 +40,79 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   currentImageIndex: -1,
   imageHistories: new Map(),
   isLoading: false,
+  ws: null,
+  clientId: null,
+  // ─── WebSocket ──────────────────────────────────────────────────────────────
+  initWebSocket: () => {
+    const clientId = Math.random().toString(36).slice(2);
+    const ws = new WebSocket("ws://localhost:5001");
+
+    ws.onopen = () => {
+      console.log("WebSocket connected");
+      set({ ws, clientId });
+      const currentImage = get().getCurrentImage();
+      if (currentImage) {
+        setTimeout(() => get().joinImageChannel(currentImage.id), 100);
+      }
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "annotation-update") {
+          const latency = Date.now() - msg.serverBroadcastTime;
+          console.log(`WebSocket broadcast latency: ${latency}ms`);
+          const state = get();
+          if (msg.clientId === state.clientId) return;
+          const currentImage = state.getCurrentImage();
+          if (!currentImage || currentImage.id !== msg.imageId) return;
+
+          const annotations: Box[] = msg.annotations.map((ann: any) => ({
+            id: ann.id,
+            version: ann.version ?? 1,
+            startX: ann.start_x,
+            startY: ann.start_y,
+            endX: ann.end_x,
+            endY: ann.end_y,
+            label: ann.label,
+            color: generateRandomColor(),
+          }));
+
+          set((state) => {
+            const newImages = [...state.images];
+            newImages[state.currentImageIndex] = {
+              ...newImages[state.currentImageIndex],
+              annotations,
+            };
+            return { images: newImages };
+          });
+
+          toast("Annotations updated by another user", { icon: "🔄" });
+        }
+      } catch (e) {
+        console.error("WS message error:", e);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket disconnected, reconnecting in 3s...");
+      set({ ws: null });
+      setTimeout(() => get().initWebSocket(), 3000);
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+    };
+  },
+
+  joinImageChannel: (imageId: string) => {
+    const { ws } = get();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "join", imageId }));
+      console.log("Joined channel:", imageId);
+    }
+  },
 
   getCurrentImage: () => {
     const state = get();
@@ -65,10 +144,7 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
       const newHistories = new Map();
       images.forEach((img) => {
-        newHistories.set(img.id, {
-          history: [[]],
-          historyIndex: 0,
-        });
+        newHistories.set(img.id, { history: [[]], historyIndex: 0 });
       });
 
       set({
@@ -77,6 +153,10 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         imageHistories: newHistories,
         isLoading: false,
       });
+
+      if (images.length > 0) {
+        get().joinImageChannel(images[0].id);
+      }
     } catch (error) {
       toast.error("Failed to load images");
       set({ isLoading: false });
@@ -97,11 +177,7 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
       set((state) => {
         const newHistories = new Map(state.imageHistories);
-        newHistories.set(newImage.id, {
-          history: [[]],
-          historyIndex: 0,
-        });
-
+        newHistories.set(newImage.id, { history: [[]], historyIndex: 0 });
         toast.success(`Added: ${file.name}`);
         return {
           images: [...state.images, newImage],
@@ -119,13 +195,14 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   selectImage: async (index) => {
     const state = get();
     const image = state.images[index];
-
     if (!image) return;
 
     try {
       const serverImage = await apiService.getImageById(image.id);
 
       const annotations: Box[] = serverImage.annotations.map((ann) => ({
+        id: ann.id,
+        version: ann.version ?? 1,
         startX: ann.start_x,
         startY: ann.start_y,
         endX: ann.end_x,
@@ -136,16 +213,10 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
       set((state) => {
         const newImages = [...state.images];
-        newImages[index] = {
-          ...newImages[index],
-          annotations,
-        };
+        newImages[index] = { ...newImages[index], annotations };
 
         const newHistories = new Map(state.imageHistories);
-        newHistories.set(image.id, {
-          history: [annotations],
-          historyIndex: 0,
-        });
+        newHistories.set(image.id, { history: [annotations], historyIndex: 0 });
 
         return {
           images: newImages,
@@ -153,6 +224,8 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
           imageHistories: newHistories,
         };
       });
+
+      get().joinImageChannel(image.id);
     } catch (error) {
       toast.error("Failed to load annotations");
       set({ currentImageIndex: index });
@@ -179,7 +252,6 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
         const newHistories = new Map(state.imageHistories);
         newHistories.delete(deletedImage.id);
-
         toast.success(`Deleted: ${deletedImage.fileName}`);
 
         return {
@@ -199,7 +271,6 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
 
       const currentImage = state.images[state.currentImageIndex];
       const imageId = currentImage.id;
-
       const currentHistory = state.imageHistories.get(imageId) || {
         history: [[]],
         historyIndex: 0,
@@ -222,10 +293,7 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         historyIndex: currentHistory.historyIndex + 1,
       });
 
-      return {
-        images: newImages,
-        imageHistories: newHistories,
-      };
+      return { images: newImages, imageHistories: newHistories };
     });
   },
 
@@ -245,7 +313,21 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         label: box.label,
       }));
 
-      await apiService.replaceAllAnnotations(currentImage.id, annotationsData);
+      await apiService.replaceAllAnnotations(
+        currentImage.id,
+        annotationsData,
+        state.clientId ?? undefined,
+      );
+
+      const { ws } = get();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: "annotation-saved",
+            imageId: currentImage.id,
+          }),
+        );
+      }
     } catch (error) {
       console.error("Failed to save annotations:", error);
     }
@@ -263,14 +345,12 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       const currentImage = state.images[state.currentImageIndex];
       const annotations = currentImage.annotations || [];
       const imageId = currentImage.id;
-
       const currentHistory = state.imageHistories.get(imageId) || {
         history: [[]],
         historyIndex: 0,
       };
 
       const newAnnotations = annotations.filter((_, i) => i !== index);
-
       const newImages = [...state.images];
       newImages[state.currentImageIndex] = {
         ...newImages[state.currentImageIndex],
@@ -289,29 +369,40 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       });
 
       toast.success(`${boxLabel} #${index + 1} deleted`);
-
-      return {
-        images: newImages,
-        imageHistories: newHistories,
-      };
+      return { images: newImages, imageHistories: newHistories };
     });
 
     await get().saveAnnotations();
   },
 
-  updateLabel: (index, newLabel) => {
+  updateLabel: async (index, newLabel) => {
     const state = get();
     const annotations = state.getAnnotations();
+    const annotation = annotations[index];
+
     const newAnnotations = [...annotations];
     newAnnotations[index] = { ...newAnnotations[index], label: newLabel };
     state.setAnnotations(newAnnotations);
+
+    if (annotation.id) {
+      try {
+        await apiService.updateAnnotation(annotation.id, {
+          label: newLabel,
+          version: annotation.version ?? 1,
+        });
+      } catch (err: any) {
+        if (err.message === "CONFLICT") {
+          toast.error("⚠️ Conflict: annotation was modified by another user");
+          state.setAnnotations(annotations);
+        }
+      }
+    }
   },
 
   canUndo: () => {
     const state = get();
     const currentImage = state.getCurrentImage();
     if (!currentImage) return false;
-
     const imageHistory = state.imageHistories.get(currentImage.id);
     return imageHistory ? imageHistory.historyIndex > 0 : false;
   },
@@ -320,7 +411,6 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
     const state = get();
     const currentImage = state.getCurrentImage();
     if (!currentImage) return false;
-
     const imageHistory = state.imageHistories.get(currentImage.id);
     return imageHistory
       ? imageHistory.historyIndex < imageHistory.history.length - 1
@@ -350,14 +440,9 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         historyIndex: newIndex,
       });
 
-      return {
-        images: newImages,
-        imageHistories: newHistories,
-      };
+      return { images: newImages, imageHistories: newHistories };
     });
-    setTimeout(() => {
-      get().saveAnnotations();
-    }, 100);
+    setTimeout(() => get().saveAnnotations(), 100);
   },
 
   redo: () => {
@@ -369,9 +454,8 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       if (
         !imageHistory ||
         imageHistory.historyIndex >= imageHistory.history.length - 1
-      ) {
+      )
         return state;
-      }
 
       const newIndex = imageHistory.historyIndex + 1;
       const annotations = imageHistory.history[newIndex];
@@ -388,14 +472,9 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         historyIndex: newIndex,
       });
 
-      return {
-        images: newImages,
-        imageHistories: newHistories,
-      };
+      return { images: newImages, imageHistories: newHistories };
     });
-    setTimeout(() => {
-      get().saveAnnotations();
-    }, 100);
+    setTimeout(() => get().saveAnnotations(), 100);
   },
 
   exportJSON: () => {

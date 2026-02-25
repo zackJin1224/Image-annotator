@@ -72,6 +72,7 @@ function AnnotationPage() {
 
   useEffect(() => {
     loadImages();
+    useAnnotationStore.getState().initWebSocket();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
